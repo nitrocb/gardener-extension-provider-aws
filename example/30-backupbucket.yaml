@@ -11,6 +11,7 @@ data:
 # endpoint: base64(custom endpoint for S3 compatible object storage)
 # s3ForcePathStyle: base64(force path style for storing objects, necessary for S3 compatible storage)
 # trustedCaCert: base64(trusted ca certificate in pem format. Necessary custom CAs)
+# insecureSkipVerify: base64(boolean switch for skipping TLS verification)
 ---
 apiVersion: extensions.gardener.cloud/v1alpha1
 kind: BackupBucket
