@@ -1,19 +1,6 @@
-/*
- * Copyright 2019 SAP SE or an SAP affiliate company. All rights reserved. This file is licensed under the Apache Software License, v. 2 except as noted otherwise in the LICENSE file
- *
- *  Licensed under the Apache License, Version 2.0 (the "License");
- *  you may not use this file except in compliance with the License.
- *  You may obtain a copy of the License at
- *
- *       http://www.apache.org/licenses/LICENSE-2.0
- *
- *  Unless required by applicable law or agreed to in writing, software
- *  distributed under the License is distributed on an "AS IS" BASIS,
- *  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- *  See the License for the specific language governing permissions and
- *  limitations under the License.
- *
- */
+// SPDX-FileCopyrightText: 2024 SAP SE or an SAP affiliate company and Gardener contributors
+//
+// SPDX-License-Identifier: Apache-2.0
 
 package helper
 
@@ -45,19 +32,6 @@ func init() {
 	decoder = serializer.NewCodecFactory(Scheme, serializer.EnableStrict).UniversalDecoder()
 }
 
-// InfrastructureConfigFromInfrastructure extracts the InfrastructureConfig from the
-// ProviderConfig section of the given Infrastructure.
-func InfrastructureConfigFromInfrastructure(infra *extensionsv1alpha1.Infrastructure) (*api.InfrastructureConfig, error) {
-	config := &api.InfrastructureConfig{}
-	if infra.Spec.ProviderConfig != nil && infra.Spec.ProviderConfig.Raw != nil {
-		if _, _, err := decoder.Decode(infra.Spec.ProviderConfig.Raw, nil, config); err != nil {
-			return nil, err
-		}
-		return config, nil
-	}
-	return nil, fmt.Errorf("provider config is not set on the infrastructure resource")
-}
-
 // CloudProfileConfigFromCluster decodes the provider specific cloud profile configuration for a cluster
 func CloudProfileConfigFromCluster(cluster *controller.Cluster) (*api.CloudProfileConfig, error) {
 	var cloudProfileConfig *api.CloudProfileConfig
@@ -68,4 +42,55 @@ func CloudProfileConfigFromCluster(cluster *controller.Cluster) (*api.CloudProfi
 		}
 	}
 	return cloudProfileConfig, nil
+}
+
+// InfrastructureConfigFromInfrastructure extracts the InfrastructureConfig from the
+// ProviderConfig section of the given Infrastructure.
+func InfrastructureConfigFromInfrastructure(infra *extensionsv1alpha1.Infrastructure) (*api.InfrastructureConfig, error) {
+	config := &api.InfrastructureConfig{}
+	if infra.Spec.ProviderConfig != nil {
+		data, err := marshalRaw(infra.Spec.ProviderConfig)
+		if err != nil {
+			return nil, err
+		}
+		if data != nil {
+			if _, _, err := decoder.Decode(data, nil, config); err != nil {
+				return nil, err
+			}
+			return config, nil
+		}
+	}
+	return nil, fmt.Errorf("provider config is not set on the infrastructure resource")
+}
+
+// InfrastructureStatusFromInfrastructure extracts the InfrastructureStatus from the
+// ProviderConfig section of the given Infrastructure status.
+func InfrastructureStatusFromInfrastructure(infra *extensionsv1alpha1.Infrastructure) (*api.InfrastructureStatus, error) {
+	status := &api.InfrastructureStatus{}
+	if infra.Status.ProviderStatus != nil {
+		data, err := marshalRaw(infra.Status.ProviderStatus)
+		if err != nil {
+			return nil, err
+		}
+
+		if data != nil {
+			if _, _, err := decoder.Decode(data, nil, status); err != nil {
+				return nil, err
+			}
+			return status, nil
+		}
+	}
+	return nil, fmt.Errorf("provider status is not set on the infrastructure resource")
+}
+
+func marshalRaw(raw *runtime.RawExtension) ([]byte, error) {
+	data, err := raw.MarshalJSON()
+	if err != nil {
+		return nil, err
+	}
+	if string(data) == "null" {
+		return nil, nil
+	}
+
+	return data, err
 }

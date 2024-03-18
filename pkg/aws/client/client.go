@@ -1,16 +1,6 @@
-// Copyright (c) 2018 SAP SE or an SAP affiliate company. All rights reserved. This file is licensed under the Apache Software License, v. 2 except as noted otherwise in the LICENSE file
+// SPDX-FileCopyrightText: 2024 SAP SE or an SAP affiliate company and Gardener contributors
 //
-// Licensed under the Apache License, Version 2.0 (the "License");
-// you may not use this file except in compliance with the License.
-// You may obtain a copy of the License at
-//
-//      http://www.apache.org/licenses/LICENSE-2.0
-//
-// Unless required by applicable law or agreed to in writing, software
-// distributed under the License is distributed on an "AS IS" BASIS,
-// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-// See the License for the specific language governing permissions and
-// limitations under the License.
+// SPDX-License-Identifier: Apache-2.0
 
 package client
 
@@ -48,7 +38,7 @@ import (
 	"golang.org/x/time/rate"
 	"k8s.io/apimachinery/pkg/util/sets"
 	"k8s.io/apimachinery/pkg/util/wait"
-	"k8s.io/utils/pointer"
+	"k8s.io/utils/ptr"
 	"sigs.k8s.io/controller-runtime/pkg/log"
 )
 
@@ -1291,7 +1281,7 @@ func (c *Client) DeleteInternetGateway(ctx context.Context, id string) error {
 func (c *Client) CreateVpcEndpoint(ctx context.Context, endpoint *VpcEndpoint) (*VpcEndpoint, error) {
 	input := &ec2.CreateVpcEndpointInput{
 		ServiceName: aws.String(endpoint.ServiceName),
-		//TagSpecifications: endpoint.ToTagSpecifications(ec2.ResourceTypeClientVpnEndpoint),
+		// TagSpecifications: endpoint.ToTagSpecifications(ec2.ResourceTypeClientVpnEndpoint),
 		VpcId: endpoint.VpcId,
 	}
 	output, err := c.EC2.CreateVpcEndpointWithContext(ctx, input)
@@ -1299,7 +1289,7 @@ func (c *Client) CreateVpcEndpoint(ctx context.Context, endpoint *VpcEndpoint) (
 		return nil, err
 	}
 	return &VpcEndpoint{
-		//Tags:          FromTags(output.VpcEndpoint.Tags),
+		// Tags:          FromTags(output.VpcEndpoint.Tags),
 		VpcEndpointId: aws.StringValue(output.VpcEndpoint.VpcEndpointId),
 		VpcId:         output.VpcEndpoint.VpcId,
 		ServiceName:   aws.StringValue(output.VpcEndpoint.ServiceName),
@@ -2169,7 +2159,7 @@ func fromIpPermission(groupId string, ipPerm *ec2.IpPermission, ruleType Securit
 		if err != nil {
 			return nil, err
 		}
-		rule.Foreign = pointer.String(string(data))
+		rule.Foreign = ptr.To(string(data))
 	}
 	return rule, nil
 }

@@ -9,6 +9,7 @@ require (
 	github.com/aws/aws-sdk-go v1.44.173
 	github.com/coreos/go-systemd/v22 v22.5.0
 	github.com/gardener/etcd-druid v0.22.0
+	github.com/gardener/external-dns-management v0.17.1
 	github.com/gardener/gardener v1.87.0
 	github.com/gardener/machine-controller-manager v0.50.0
 	github.com/go-logr/logr v1.2.4
@@ -29,7 +30,7 @@ require (
 	k8s.io/code-generator v0.28.3
 	k8s.io/component-base v0.28.3
 	k8s.io/kubelet v0.28.3
-	k8s.io/utils v0.0.0-20230406110748-d93618cff8a2
+	k8s.io/utils v0.0.0-20240102154912-e7106e64919e
 	sigs.k8s.io/controller-runtime v0.16.3
 	sigs.k8s.io/controller-tools v0.13.0
 )

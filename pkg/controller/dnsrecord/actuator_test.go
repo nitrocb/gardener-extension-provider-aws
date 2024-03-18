@@ -1,16 +1,6 @@
-// Copyright (c) 2021 SAP SE or an SAP affiliate company. All rights reserved. This file is licensed under the Apache Software License, v. 2 except as noted otherwise in the LICENSE file
+// SPDX-FileCopyrightText: 2024 SAP SE or an SAP affiliate company and Gardener contributors
 //
-// Licensed under the Apache License, Version 2.0 (the "License");
-// you may not use this file except in compliance with the License.
-// You may obtain a copy of the License at
-//
-//      http://www.apache.org/licenses/LICENSE-2.0
-//
-// Unless required by applicable law or agreed to in writing, software
-// distributed under the License is distributed on an "AS IS" BASIS,
-// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-// See the License for the specific language governing permissions and
-// limitations under the License.
+// SPDX-License-Identifier: Apache-2.0
 
 package dnsrecord_test
 
@@ -38,6 +28,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/log"
 
 	"github.com/gardener/gardener-extension-provider-aws/pkg/aws"
+	awsclient "github.com/gardener/gardener-extension-provider-aws/pkg/aws/client"
 	mockawsclient "github.com/gardener/gardener-extension-provider-aws/pkg/aws/client/mock"
 	. "github.com/gardener/gardener-extension-provider-aws/pkg/controller/dnsrecord"
 )
@@ -144,8 +135,7 @@ var _ = Describe("Actuator", func() {
 
 		It("should reconcile the DNSRecord", func() {
 			awsClient.EXPECT().GetDNSHostedZones(ctx).Return(zones, nil)
-			awsClient.EXPECT().CreateOrUpdateDNSRecordSet(ctx, zone, domainName, string(extensionsv1alpha1.DNSRecordTypeA), []string{address}, int64(120)).Return(nil)
-			awsClient.EXPECT().DeleteDNSRecordSet(ctx, zone, "comment-"+domainName, "TXT", nil, int64(0)).Return(nil)
+			awsClient.EXPECT().CreateOrUpdateDNSRecordSet(ctx, zone, domainName, string(extensionsv1alpha1.DNSRecordTypeA), []string{address}, int64(120), awsclient.IPStackIPv4).Return(nil)
 			sw.EXPECT().Patch(ctx, gomock.AssignableToTypeOf(&extensionsv1alpha1.DNSRecord{}), gomock.Any()).DoAndReturn(
 				func(_ context.Context, obj *extensionsv1alpha1.DNSRecord, _ client.Patch, opts ...client.PatchOption) error {
 					Expect(obj.Status).To(Equal(extensionsv1alpha1.DNSRecordStatus{
@@ -162,7 +152,7 @@ var _ = Describe("Actuator", func() {
 		It("should fail if creating the DNS record set failed", func() {
 			dns.Spec.Zone = pointer.String(zone)
 
-			awsClient.EXPECT().CreateOrUpdateDNSRecordSet(ctx, zone, domainName, string(extensionsv1alpha1.DNSRecordTypeA), []string{address}, int64(120)).
+			awsClient.EXPECT().CreateOrUpdateDNSRecordSet(ctx, zone, domainName, string(extensionsv1alpha1.DNSRecordTypeA), []string{address}, int64(120), awsclient.IPStackIPv4).
 				Return(errors.New("test"))
 
 			err := a.Reconcile(ctx, logger, dns, nil)
@@ -174,7 +164,7 @@ var _ = Describe("Actuator", func() {
 		It("should fail with ERR_CONFIGURATION_PROBLEM if there is no such hosted zone", func() {
 			dns.Spec.Zone = pointer.String(zone)
 
-			awsClient.EXPECT().CreateOrUpdateDNSRecordSet(ctx, zone, domainName, string(extensionsv1alpha1.DNSRecordTypeA), []string{address}, int64(120)).
+			awsClient.EXPECT().CreateOrUpdateDNSRecordSet(ctx, zone, domainName, string(extensionsv1alpha1.DNSRecordTypeA), []string{address}, int64(120), awsclient.IPStackIPv4).
 				Return(awserr.New(route53.ErrCodeNoSuchHostedZone, "", nil))
 
 			err := a.Reconcile(ctx, logger, dns, nil)
@@ -187,7 +177,7 @@ var _ = Describe("Actuator", func() {
 		It("should fail with ERR_CONFIGURATION_PROBLEM if the domain name is not permitted in the zone", func() {
 			dns.Spec.Zone = pointer.String(zone)
 
-			awsClient.EXPECT().CreateOrUpdateDNSRecordSet(ctx, zone, domainName, string(extensionsv1alpha1.DNSRecordTypeA), []string{address}, int64(120)).
+			awsClient.EXPECT().CreateOrUpdateDNSRecordSet(ctx, zone, domainName, string(extensionsv1alpha1.DNSRecordTypeA), []string{address}, int64(120), awsclient.IPStackIPv4).
 				Return(awserr.New(route53.ErrCodeInvalidChangeBatch, "RRSet with DNS name api.aws.foobar.shoot.example.com. is not permitted in zone foo.com.", nil))
 
 			err := a.Reconcile(ctx, logger, dns, nil)
@@ -209,7 +199,7 @@ var _ = Describe("Actuator", func() {
 				},
 			)
 			awsClientFactory.EXPECT().NewClient(accessKeyID, secretAccessKey, aws.DefaultDNSRegion).Return(awsClient, nil)
-			awsClient.EXPECT().DeleteDNSRecordSet(ctx, zone, domainName, string(extensionsv1alpha1.DNSRecordTypeA), []string{address}, int64(120)).Return(nil)
+			awsClient.EXPECT().DeleteDNSRecordSet(ctx, zone, domainName, string(extensionsv1alpha1.DNSRecordTypeA), []string{address}, int64(120), awsclient.IPStackIPv4).Return(nil)
 
 			err := a.Delete(ctx, logger, dns, nil)
 			Expect(err).NotTo(HaveOccurred())

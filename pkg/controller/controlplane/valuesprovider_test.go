@@ -1,16 +1,6 @@
-// Copyright (c) 2019 SAP SE or an SAP affiliate company. All rights reserved. This file is licensed under the Apache Software License, v. 2 except as noted otherwise in the LICENSE file
+// SPDX-FileCopyrightText: 2024 SAP SE or an SAP affiliate company and Gardener contributors
 //
-// Licensed under the Apache License, Version 2.0 (the "License");
-// you may not use this file except in compliance with the License.
-// You may obtain a copy of the License at
-//
-//      http://www.apache.org/licenses/LICENSE-2.0
-//
-// Unless required by applicable law or agreed to in writing, software
-// distributed under the License is distributed on an "AS IS" BASIS,
-// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-// See the License for the specific language governing permissions and
-// limitations under the License.
+// SPDX-License-Identifier: Apache-2.0
 
 package controlplane
 
@@ -186,7 +176,7 @@ var _ = Describe("ValuesProvider", func() {
 						Pods: &cidr,
 					},
 					Kubernetes: gardencorev1beta1.Kubernetes{
-						Version: "1.24.1",
+						Version: "1.28.2",
 						VerticalPodAutoscaler: &gardencorev1beta1.VerticalPodAutoscaler{
 							Enabled: true,
 						},
@@ -509,7 +499,7 @@ var _ = Describe("ValuesProvider", func() {
 					aws.AWSCustomRouteControllerName:  enabledFalse,
 					aws.AWSLoadBalancerControllerName: enabledFalse,
 					aws.CSINodeName: utils.MergeMaps(enabledTrue, map[string]interface{}{
-						"kubernetesVersion": "1.24.1",
+						"kubernetesVersion": "1.28.2",
 						"vpaEnabled":        true,
 						"driver": map[string]interface{}{
 							"volumeAttachLimit": "42",
@@ -518,7 +508,6 @@ var _ = Describe("ValuesProvider", func() {
 							"url":      "https://" + aws.CSISnapshotValidationName + "." + cp.Namespace + "/volumesnapshot",
 							"caBundle": "",
 						},
-						"pspDisabled": false,
 					}),
 				}))
 			})
@@ -534,7 +523,7 @@ var _ = Describe("ValuesProvider", func() {
 					aws.AWSCustomRouteControllerName:  enabledTrue,
 					aws.AWSLoadBalancerControllerName: enabledFalse,
 					aws.CSINodeName: utils.MergeMaps(enabledTrue, map[string]interface{}{
-						"kubernetesVersion": "1.24.1",
+						"kubernetesVersion": "1.28.2",
 						"vpaEnabled":        true,
 						"driver": map[string]interface{}{
 							"volumeAttachLimit": "42",
@@ -543,7 +532,6 @@ var _ = Describe("ValuesProvider", func() {
 							"url":      "https://" + aws.CSISnapshotValidationName + "." + cp.Namespace + "/volumesnapshot",
 							"caBundle": "",
 						},
-						"pspDisabled": false,
 					}),
 				}))
 			})
@@ -574,7 +562,7 @@ var _ = Describe("ValuesProvider", func() {
 					aws.AWSCustomRouteControllerName:  enabledFalse,
 					aws.AWSLoadBalancerControllerName: albChartValues,
 					aws.CSINodeName: utils.MergeMaps(enabledTrue, map[string]interface{}{
-						"kubernetesVersion": "1.24.1",
+						"kubernetesVersion": "1.28.2",
 						"vpaEnabled":        true,
 						"driver": map[string]interface{}{
 							"volumeAttachLimit": "42",
@@ -583,67 +571,6 @@ var _ = Describe("ValuesProvider", func() {
 							"url":      "https://" + aws.CSISnapshotValidationName + "." + cp.Namespace + "/volumesnapshot",
 							"caBundle": "",
 						},
-						"pspDisabled": false,
-					}),
-				}))
-			})
-		})
-
-		Context("podSecurityPolicy", func() {
-			It("should return correct shoot control plane chart when PodSecurityPolicy admission plugin is not disabled in the shoot", func() {
-				cluster.Shoot.Spec.Kubernetes.KubeAPIServer = &gardencorev1beta1.KubeAPIServerConfig{
-					AdmissionPlugins: []gardencorev1beta1.AdmissionPlugin{
-						{
-							Name: "PodSecurityPolicy",
-						},
-					},
-				}
-				values, err := vp.GetControlPlaneShootChartValues(ctx, cp, cluster, fakeSecretsManager, nil)
-				Expect(err).NotTo(HaveOccurred())
-				Expect(values).To(Equal(map[string]interface{}{
-					aws.CloudControllerManagerName:    enabledTrue,
-					aws.AWSCustomRouteControllerName:  enabledFalse,
-					aws.AWSLoadBalancerControllerName: enabledFalse,
-					aws.CSINodeName: utils.MergeMaps(enabledTrue, map[string]interface{}{
-						"kubernetesVersion": "1.24.1",
-						"vpaEnabled":        true,
-						"driver": map[string]interface{}{
-							"volumeAttachLimit": "42",
-						},
-						"webhookConfig": map[string]interface{}{
-							"url":      "https://" + aws.CSISnapshotValidationName + "." + cp.Namespace + "/volumesnapshot",
-							"caBundle": "",
-						},
-						"pspDisabled": false,
-					}),
-				}))
-			})
-			It("should return correct shoot control plane chart when PodSecurityPolicy admission plugin is disabled in the shoot", func() {
-				cluster.Shoot.Spec.Kubernetes.KubeAPIServer = &gardencorev1beta1.KubeAPIServerConfig{
-					AdmissionPlugins: []gardencorev1beta1.AdmissionPlugin{
-						{
-							Name:     "PodSecurityPolicy",
-							Disabled: pointer.Bool(true),
-						},
-					},
-				}
-				values, err := vp.GetControlPlaneShootChartValues(ctx, cp, cluster, fakeSecretsManager, nil)
-				Expect(err).NotTo(HaveOccurred())
-				Expect(values).To(Equal(map[string]interface{}{
-					aws.CloudControllerManagerName:    enabledTrue,
-					aws.AWSCustomRouteControllerName:  enabledFalse,
-					aws.AWSLoadBalancerControllerName: enabledFalse,
-					aws.CSINodeName: utils.MergeMaps(enabledTrue, map[string]interface{}{
-						"kubernetesVersion": "1.24.1",
-						"vpaEnabled":        true,
-						"driver": map[string]interface{}{
-							"volumeAttachLimit": "42",
-						},
-						"webhookConfig": map[string]interface{}{
-							"url":      "https://" + aws.CSISnapshotValidationName + "." + cp.Namespace + "/volumesnapshot",
-							"caBundle": "",
-						},
-						"pspDisabled": true,
 					}),
 				}))
 			})

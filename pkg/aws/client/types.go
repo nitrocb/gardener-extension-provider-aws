@@ -1,16 +1,6 @@
-// Copyright (c) 2018 SAP SE or an SAP affiliate company. All rights reserved. This file is licensed under the Apache Software License, v. 2 except as noted otherwise in the LICENSE file
+// SPDX-FileCopyrightText: 2024 SAP SE or an SAP affiliate company and Gardener contributors
 //
-// Licensed under the Apache License, Version 2.0 (the "License");
-// you may not use this file except in compliance with the License.
-// You may obtain a copy of the License at
-//
-//      http://www.apache.org/licenses/LICENSE-2.0
-//
-// Unless required by applicable law or agreed to in writing, software
-// distributed under the License is distributed on an "AS IS" BASIS,
-// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-// See the License for the specific language governing permissions and
-// limitations under the License.
+// SPDX-License-Identifier: Apache-2.0
 
 package client
 
@@ -32,6 +22,18 @@ const (
 	errCodeBucketNotEmpty = "BucketNotEmpty"
 )
 
+// IPStack is an enumeration of IP stacks
+type IPStack string
+
+const (
+	// IPStackIPv4 is the default IPv4 stack
+	IPStackIPv4 IPStack = "ipv4"
+	// IPStackIPDualStack is the IPv4/IPv6 dual-stack
+	IPStackIPDualStack IPStack = "dual-stack"
+	// IPStackIPv6 is the IPv6 stack
+	IPStackIPv6 IPStack = "ipv6"
+)
+
 // Interface is an interface which must be implemented by AWS clients.
 type Interface interface {
 	GetAccountID(ctx context.Context) (string, error)
@@ -49,8 +51,8 @@ type Interface interface {
 
 	// Route53 wrappers
 	GetDNSHostedZones(ctx context.Context) (map[string]string, error)
-	CreateOrUpdateDNSRecordSet(ctx context.Context, zoneId, name, recordType string, values []string, ttl int64) error
-	DeleteDNSRecordSet(ctx context.Context, zoneId, name, recordType string, values []string, ttl int64) error
+	CreateOrUpdateDNSRecordSet(ctx context.Context, zoneId, name, recordType string, values []string, ttl int64, stack IPStack) error
+	DeleteDNSRecordSet(ctx context.Context, zoneId, name, recordType string, values []string, ttl int64, stack IPStack) error
 
 	// The following functions are only temporary needed due to https://github.com/gardener/gardener/issues/129.
 	ListKubernetesELBs(ctx context.Context, vpcID, clusterName string) ([]string, error)
