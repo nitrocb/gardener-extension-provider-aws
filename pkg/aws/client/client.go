@@ -6,8 +6,11 @@ package client
 
 import (
 	"context"
+	"crypto/tls"
+	"crypto/x509"
 	"encoding/json"
 	"fmt"
+	"net/http"
 	"net/url"
 	"reflect"
 	"strings"
@@ -96,6 +99,55 @@ func NewClient(accessKeyID, secretAccessKey, region string) (*Client, error) {
 		Route53RateLimiterWaitTimeout: 1 * time.Second,
 		Logger:                        log.Log.WithName("aws-client"),
 		PollInterval:                  5 * time.Second,
+	}, nil
+}
+
+func NewS3CompatClient(accessKeyID, secretAccessKey, region string, endpoint string, trustedCaCert []byte, s3ForcePathStyle, insecureSkipVerify bool) (*Client, error) {
+	var (
+		awsConfig = &aws.Config{
+			Credentials: credentials.NewStaticCredentials(accessKeyID, secretAccessKey, ""),
+		}
+		config = &aws.Config{
+			Region:           aws.String(region),
+			Endpoint:         &endpoint,
+			S3ForcePathStyle: &s3ForcePathStyle,
+		}
+	)
+
+	httpClient := http.DefaultClient
+
+	if insecureSkipVerify {
+		httpClient.Transport = &http.Transport{
+			TLSClientConfig: &tls.Config{
+				InsecureSkipVerify: insecureSkipVerify,
+			},
+		}
+	}
+
+	if trustedCaCert != nil {
+		caCertPool := x509.NewCertPool()
+		caCertPool.AppendCertsFromPEM(trustedCaCert)
+		httpClient.Transport = &http.Transport{
+			TLSClientConfig: &tls.Config{
+				RootCAs:            caCertPool,
+				InsecureSkipVerify: false,
+				MinVersion:         tls.VersionTLS13,
+			},
+		}
+
+	}
+
+	config.HTTPClient = httpClient
+
+	s, err := session.NewSession(awsConfig)
+	if err != nil {
+		return nil, err
+	}
+
+	return &Client{
+		S3:           s3.New(s, config),
+		Logger:       log.Log.WithName("aws-client"),
+		PollInterval: 5 * time.Second,
 	}, nil
 }
 
@@ -436,6 +488,29 @@ func (c *Client) CreateBucketIfNotExists(ctx context.Context, bucket, region str
 
 	_, err = c.S3.PutBucketLifecycleConfigurationWithContext(ctx, putBucketLifecycleConfigurationInput)
 	return err
+}
+
+// S3CreateBucketIfNotExists creates the s3 bucket with name <bucket> in <region>. If it already exists,
+// no error is returned. This function works with S3 compatible storage like Minio.
+func (c *Client) S3CompatCreateBucketIfNotExists(ctx context.Context, bucket, region string) error {
+	createBucketInput := &s3.CreateBucketInput{
+		Bucket: aws.String(bucket),
+		ACL:    aws.String(s3.BucketCannedACLPrivate),
+		CreateBucketConfiguration: &s3.CreateBucketConfiguration{
+			LocationConstraint: aws.String(region),
+		},
+	}
+
+	if _, err := c.S3.CreateBucketWithContext(ctx, createBucketInput); err != nil {
+		if aerr, ok := err.(awserr.Error); !ok {
+			return err
+		} else if aerr.Code() != s3.ErrCodeBucketAlreadyExists && aerr.Code() != s3.ErrCodeBucketAlreadyOwnedByYou {
+			return err
+		}
+	}
+
+	return nil
+
 }
 
 // DeleteBucketIfExists deletes the s3 bucket with name <bucket>. If it does not exist,
